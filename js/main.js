@@ -700,8 +700,50 @@
     const form = document.getElementById('contact-form');
     if (!form) return;
 
+    const modal = document.getElementById('confirm-modal');
+    const modalBody = document.getElementById('confirm-body');
+    const btnCancel = document.getElementById('modal-cancel');
+    const btnConfirm = document.getElementById('modal-confirm');
+
+    const labels = {
+      name: 'お名前',
+      company: '会社名',
+      email: 'メールアドレス',
+      subject: '件名',
+      message: 'メッセージ',
+    };
+
+    // Show modal on submit
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      modalBody.innerHTML = '';
+      const fields = ['name', 'company', 'email', 'subject', 'message'];
+      for (const key of fields) {
+        const val = form.querySelector(`#${key}`).value.trim();
+        if (!val) continue;
+        const dt = document.createElement('dt');
+        dt.textContent = labels[key];
+        const dd = document.createElement('dd');
+        dd.textContent = val;
+        modalBody.appendChild(dt);
+        modalBody.appendChild(dd);
+      }
+      modal.classList.add('open');
+    });
+
+    // Cancel
+    btnCancel.addEventListener('click', () => {
+      modal.classList.remove('open');
+    });
+
+    // Close on overlay click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('open');
+    });
+
+    // Confirm and send
+    btnConfirm.addEventListener('click', () => {
+      modal.classList.remove('open');
       const btn = form.querySelector('.form-submit');
       btn.textContent = '送信中...';
       btn.disabled = true;
