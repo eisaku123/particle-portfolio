@@ -702,22 +702,34 @@
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = form.querySelector('#name').value.trim();
-      const company = form.querySelector('#company').value.trim();
-      const email = form.querySelector('#email').value.trim();
-      const subject = form.querySelector('#subject').value.trim();
-      const message = form.querySelector('#message').value.trim();
+      const btn = form.querySelector('.form-submit');
+      btn.textContent = '送信中...';
+      btn.disabled = true;
 
-      const body = [
-        `お名前: ${name}`,
-        company ? `会社名: ${company}` : '',
-        `メールアドレス: ${email}`,
-        '',
-        message,
-      ].filter(Boolean).join('\n');
+      const data = new FormData(form);
 
-      const mailto = `mailto:hello@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
+      fetch('https://formspree.io/f/mqedgble', {
+        method: 'POST',
+        body: data,
+        headers: { 'Accept': 'application/json' },
+      })
+        .then((res) => {
+          if (res.ok) {
+            form.reset();
+            btn.textContent = '送信しました！';
+            setTimeout(() => {
+              btn.textContent = '送信する';
+              btn.disabled = false;
+            }, 3000);
+          } else {
+            throw new Error('送信に失敗しました');
+          }
+        })
+        .catch(() => {
+          btn.textContent = '送信に失敗しました';
+          btn.disabled = false;
+          setTimeout(() => { btn.textContent = '送信する'; }, 3000);
+        });
     });
   }
 
