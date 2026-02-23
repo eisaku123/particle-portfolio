@@ -5,6 +5,47 @@
 (function () {
   'use strict';
 
+  // ---- Theme Definitions ----
+  const THEMES = {
+    navy: {
+      bg: '#0a0a1a', bgAlt: '#111128', accent: '#667eea', accentAlt: '#764ba2',
+      textMuted: '#8888aa', border: 'rgba(255,255,255,0.08)',
+      particle: [140, 160, 255], line: [102, 126, 234],
+      globe: [80, 120, 230], globeContinent: [100, 180, 255], globeFill: [60, 120, 200],
+      ocean: [[20, 40, 80], [10, 20, 50]], gridLine: [80, 130, 220],
+    },
+    emerald: {
+      bg: '#0a1a12', bgAlt: '#112820', accent: '#34d399', accentAlt: '#059669',
+      textMuted: '#7aaa96', border: 'rgba(200,255,230,0.08)',
+      particle: [100, 220, 170], line: [52, 211, 153],
+      globe: [50, 180, 130], globeContinent: [80, 220, 170], globeFill: [40, 150, 110],
+      ocean: [[10, 50, 35], [5, 30, 20]], gridLine: [50, 180, 130],
+    },
+    rose: {
+      bg: '#1a0a14', bgAlt: '#281120', accent: '#f472b6', accentAlt: '#db2777',
+      textMuted: '#aa7a96', border: 'rgba(255,200,230,0.08)',
+      particle: [255, 140, 190], line: [244, 114, 182],
+      globe: [200, 80, 150], globeContinent: [255, 130, 190], globeFill: [180, 60, 130],
+      ocean: [[50, 15, 35], [30, 8, 20]], gridLine: [200, 80, 150],
+    },
+    amber: {
+      bg: '#1a150a', bgAlt: '#282010', accent: '#fbbf24', accentAlt: '#d97706',
+      textMuted: '#aa9a7a', border: 'rgba(255,230,180,0.08)',
+      particle: [255, 200, 100], line: [251, 191, 36],
+      globe: [200, 160, 50], globeContinent: [255, 200, 100], globeFill: [180, 140, 40],
+      ocean: [[50, 40, 15], [30, 25, 8]], gridLine: [200, 160, 50],
+    },
+    cyan: {
+      bg: '#0a1a1a', bgAlt: '#102828', accent: '#22d3ee', accentAlt: '#0891b2',
+      textMuted: '#7aaaaa', border: 'rgba(200,255,255,0.08)',
+      particle: [100, 220, 240], line: [34, 211, 238],
+      globe: [30, 180, 210], globeContinent: [80, 210, 240], globeFill: [30, 160, 200],
+      ocean: [[10, 40, 50], [5, 25, 35]], gridLine: [30, 180, 210],
+    },
+  };
+
+  let currentTheme = THEMES.navy;
+
   // ---- Particle Class ----
   class Particle {
     constructor(canvasW, canvasH) {
@@ -69,9 +110,10 @@
     }
 
     draw(ctx) {
+      const c = currentTheme.particle;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(140, 160, 255, ${this.alpha})`;
+      ctx.fillStyle = `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${this.alpha})`;
       ctx.fill();
     }
   }
@@ -160,7 +202,8 @@
             this.ctx.beginPath();
             this.ctx.moveTo(particles[i].x, particles[i].y);
             this.ctx.lineTo(particles[j].x, particles[j].y);
-            this.ctx.strokeStyle = `rgba(102, 126, 234, ${alpha * 0.3})`;
+            const lc = currentTheme.line;
+            this.ctx.strokeStyle = `rgba(${lc[0]}, ${lc[1]}, ${lc[2]}, ${alpha * 0.3})`;
             this.ctx.lineWidth = 1.5;
             this.ctx.stroke();
           }
@@ -381,32 +424,34 @@
 
       // Atmosphere glow (intensifies on hover)
       const gi = this.glowIntensity;
+      const gc = currentTheme.globe;
       const glow = ctx.createRadialGradient(
         this.cx, this.cy, this.radius * 0.85,
         this.cx, this.cy, this.radius * 1.35
       );
-      glow.addColorStop(0, `rgba(80, 120, 230, ${0.08 + gi * 0.12})`);
-      glow.addColorStop(0.5, `rgba(80, 120, 230, ${0.03 + gi * 0.06})`);
-      glow.addColorStop(1, 'rgba(80, 120, 230, 0)');
+      glow.addColorStop(0, `rgba(${gc[0]}, ${gc[1]}, ${gc[2]}, ${0.08 + gi * 0.12})`);
+      glow.addColorStop(0.5, `rgba(${gc[0]}, ${gc[1]}, ${gc[2]}, ${0.03 + gi * 0.06})`);
+      glow.addColorStop(1, `rgba(${gc[0]}, ${gc[1]}, ${gc[2]}, 0)`);
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, this.w, this.h);
 
       // Ocean sphere
+      const oc = currentTheme.ocean;
       ctx.beginPath();
       ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
       const oceanGrad = ctx.createRadialGradient(
         this.cx - this.radius * 0.3, this.cy - this.radius * 0.3, 0,
         this.cx, this.cy, this.radius
       );
-      oceanGrad.addColorStop(0, 'rgba(20, 40, 80, 0.6)');
-      oceanGrad.addColorStop(1, 'rgba(10, 20, 50, 0.4)');
+      oceanGrad.addColorStop(0, `rgba(${oc[0][0]}, ${oc[0][1]}, ${oc[0][2]}, 0.6)`);
+      oceanGrad.addColorStop(1, `rgba(${oc[1][0]}, ${oc[1][1]}, ${oc[1][2]}, 0.4)`);
       ctx.fillStyle = oceanGrad;
       ctx.fill();
 
       // Sphere edge highlight
       ctx.beginPath();
       ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(100, 150, 255, ${0.2 + gi * 0.25})`;
+      ctx.strokeStyle = `rgba(${gc[0]}, ${gc[1]}, ${gc[2]}, ${0.2 + gi * 0.25})`;
       ctx.lineWidth = 1.5 + gi * 1;
       ctx.stroke();
 
@@ -429,8 +474,8 @@
         this.cx - this.radius * 0.35, this.cy - this.radius * 0.35, 0,
         this.cx - this.radius * 0.35, this.cy - this.radius * 0.35, this.radius * 0.6
       );
-      spec.addColorStop(0, 'rgba(180, 210, 255, 0.08)');
-      spec.addColorStop(1, 'rgba(180, 210, 255, 0)');
+      spec.addColorStop(0, 'rgba(220, 230, 255, 0.08)');
+      spec.addColorStop(1, 'rgba(220, 230, 255, 0)');
       ctx.fillStyle = spec;
       ctx.beginPath();
       ctx.arc(this.cx, this.cy, this.radius, 0, Math.PI * 2);
@@ -466,7 +511,8 @@
         ctx.closePath();
         const avgZ = seg.reduce((s, p) => s + p.z, 0) / seg.length;
         const fillAlpha = Math.max(0.02, avgZ * 0.12 + 0.06);
-        ctx.fillStyle = cont.fill.replace('FILL', fillAlpha.toFixed(3));
+        const fc = currentTheme.globeFill;
+        ctx.fillStyle = `rgba(${fc[0]}, ${fc[1]}, ${fc[2]}, ${fillAlpha.toFixed(3)})`;
         ctx.fill();
 
         // Outline
@@ -476,7 +522,8 @@
           ctx.lineTo(seg[i].px, seg[i].py);
         }
         const strokeAlpha = Math.max(0.1, avgZ * 0.5 + 0.3);
-        ctx.strokeStyle = cont.color.replace('ALPHA', strokeAlpha.toFixed(3));
+        const cc = currentTheme.globeContinent;
+        ctx.strokeStyle = `rgba(${cc[0]}, ${cc[1]}, ${cc[2]}, ${strokeAlpha.toFixed(3)})`;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -498,7 +545,8 @@
           drawing = false;
         }
       }
-      ctx.strokeStyle = 'rgba(80, 130, 220, 0.08)';
+      const gl = currentTheme.gridLine;
+      ctx.strokeStyle = `rgba(${gl[0]}, ${gl[1]}, ${gl[2]}, 0.08)`;
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
@@ -519,7 +567,8 @@
           drawing = false;
         }
       }
-      ctx.strokeStyle = 'rgba(80, 130, 220, 0.08)';
+      const gl = currentTheme.gridLine;
+      ctx.strokeStyle = `rgba(${gl[0]}, ${gl[1]}, ${gl[2]}, 0.08)`;
       ctx.lineWidth = 0.5;
       ctx.stroke();
     }
@@ -589,6 +638,34 @@
     });
   }
 
+  // ---- Color Palette ----
+  function initColorPalette() {
+    const buttons = document.querySelectorAll('.color-btn');
+    const root = document.documentElement;
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const themeName = btn.dataset.theme;
+        const theme = THEMES[themeName];
+        if (!theme) return;
+
+        currentTheme = theme;
+
+        // Update CSS variables
+        root.style.setProperty('--color-bg', theme.bg);
+        root.style.setProperty('--color-bg-alt', theme.bgAlt);
+        root.style.setProperty('--color-accent', theme.accent);
+        root.style.setProperty('--color-accent-alt', theme.accentAlt);
+        root.style.setProperty('--color-text-muted', theme.textMuted);
+        root.style.setProperty('--color-border', theme.border);
+
+        // Update active button
+        buttons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  }
+
   // ---- Init ----
   document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('particle-canvas');
@@ -598,5 +675,6 @@
     initFadeIn();
     initHeaderScroll();
     initMobileNav();
+    initColorPalette();
   });
 })();
