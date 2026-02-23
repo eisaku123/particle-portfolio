@@ -239,16 +239,33 @@
       this.lastMouseY = 0;
       this.hovered = false;
       this.glowIntensity = 0;   // animated glow when hovered
+      this.moving = false;       // position drag mode
+      this.posX = window.innerWidth / 2;
+      this.posY = window.innerHeight / 2;
       this.continents = this.getContinentData();
       this.resize();
+      this.updatePosition();
       this.bindEvents();
       this.animate();
-      window.addEventListener('resize', () => this.resize());
+      window.addEventListener('resize', () => {
+        this.resize();
+        // Keep globe within viewport after resize
+        this.posX = Math.min(this.posX, window.innerWidth);
+        this.posY = Math.min(this.posY, window.innerHeight);
+        this.updatePosition();
+      });
+    }
+
+    updatePosition() {
+      const container = this.canvas.parentElement;
+      const w = this.canvas.offsetWidth;
+      const h = this.canvas.offsetHeight;
+      container.style.left = (this.posX - w / 2) + 'px';
+      container.style.top = (this.posY - h / 2) + 'px';
     }
 
     bindEvents() {
       const c = this.canvas;
-      // Enable pointer events on globe canvas
       c.style.pointerEvents = 'auto';
       c.style.cursor = 'grab';
 
@@ -256,48 +273,88 @@
       c.addEventListener('mouseenter', () => { this.hovered = true; });
       c.addEventListener('mouseleave', () => {
         this.hovered = false;
-        this.dragging = false;
+        if (!this.moving) this.dragging = false;
       });
 
-      // Drag to rotate (horizontal + vertical)
+      // Mousedown: Shift = move position, normal = rotate
       c.addEventListener('mousedown', (e) => {
-        this.dragging = true;
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
-        c.style.cursor = 'grabbing';
-      });
-      window.addEventListener('mousemove', (e) => {
-        if (!this.dragging) return;
-        const dx = e.clientX - this.lastMouseX;
-        const dy = e.clientY - this.lastMouseY;
-        this.dragSpeedX = dx * 0.008;
-        this.dragSpeedY = dy * 0.008;
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-      });
-      window.addEventListener('mouseup', () => {
-        if (this.dragging) {
-          this.dragging = false;
-          this.canvas.style.cursor = 'grab';
+        if (e.shiftKey) {
+          this.moving = true;
+          c.style.cursor = 'move';
+        } else {
+          this.dragging = true;
+          c.style.cursor = 'grabbing';
         }
       });
 
-      // Touch drag
+      window.addEventListener('mousemove', (e) => {
+        const dx = e.clientX - this.lastMouseX;
+        const dy = e.clientY - this.lastMouseY;
+        if (this.moving) {
+          this.posX += dx;
+          this.posY += dy;
+          this.updatePosition();
+        } else if (this.dragging) {
+          this.dragSpeedX = dx * 0.008;
+          this.dragSpeedY = dy * 0.008;
+        }
+        this.lastMouseX = e.clientX;
+        this.lastMouseY = e.clientY;
+      });
+
+      window.addEventListener('mouseup', () => {
+        this.dragging = false;
+        this.moving = false;
+        c.style.cursor = 'grab';
+      });
+
+      // Double-click to reset position to center
+      c.addEventListener('dblclick', () => {
+        this.posX = window.innerWidth / 2;
+        this.posY = window.innerHeight / 2;
+        this.updatePosition();
+      });
+
+      // Touch: 1 finger = rotate, 2 fingers = move position
       c.addEventListener('touchstart', (e) => {
-        this.dragging = true;
-        this.lastMouseX = e.touches[0].clientX;
-        this.lastMouseY = e.touches[0].clientY;
+        if (e.touches.length >= 2) {
+          this.moving = true;
+          const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          this.lastMouseX = midX;
+          this.lastMouseY = midY;
+        } else {
+          this.dragging = true;
+          this.lastMouseX = e.touches[0].clientX;
+          this.lastMouseY = e.touches[0].clientY;
+        }
       }, { passive: true });
+
       window.addEventListener('touchmove', (e) => {
-        if (!this.dragging || !e.touches.length) return;
-        const dx = e.touches[0].clientX - this.lastMouseX;
-        const dy = e.touches[0].clientY - this.lastMouseY;
-        this.dragSpeedX = dx * 0.008;
-        this.dragSpeedY = dy * 0.008;
-        this.lastMouseX = e.touches[0].clientX;
-        this.lastMouseY = e.touches[0].clientY;
+        if (this.moving && e.touches.length >= 2) {
+          const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          this.posX += midX - this.lastMouseX;
+          this.posY += midY - this.lastMouseY;
+          this.updatePosition();
+          this.lastMouseX = midX;
+          this.lastMouseY = midY;
+        } else if (this.dragging && e.touches.length) {
+          const dx = e.touches[0].clientX - this.lastMouseX;
+          const dy = e.touches[0].clientY - this.lastMouseY;
+          this.dragSpeedX = dx * 0.008;
+          this.dragSpeedY = dy * 0.008;
+          this.lastMouseX = e.touches[0].clientX;
+          this.lastMouseY = e.touches[0].clientY;
+        }
       }, { passive: true });
-      window.addEventListener('touchend', () => { this.dragging = false; });
+
+      window.addEventListener('touchend', () => {
+        this.dragging = false;
+        this.moving = false;
+      });
     }
 
     resize() {
@@ -638,6 +695,32 @@
     });
   }
 
+  // ---- Contact Form (mailto) ----
+  function initContactForm() {
+    const form = document.getElementById('contact-form');
+    if (!form) return;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = form.querySelector('#name').value.trim();
+      const company = form.querySelector('#company').value.trim();
+      const email = form.querySelector('#email').value.trim();
+      const subject = form.querySelector('#subject').value.trim();
+      const message = form.querySelector('#message').value.trim();
+
+      const body = [
+        `お名前: ${name}`,
+        company ? `会社名: ${company}` : '',
+        `メールアドレス: ${email}`,
+        '',
+        message,
+      ].filter(Boolean).join('\n');
+
+      const mailto = `mailto:hello@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+    });
+  }
+
   // ---- Color Palette ----
   function initColorPalette() {
     const buttons = document.querySelectorAll('.color-btn');
@@ -676,5 +759,6 @@
     initHeaderScroll();
     initMobileNav();
     initColorPalette();
+    initContactForm();
   });
 })();
